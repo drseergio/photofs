@@ -6,8 +6,14 @@ __author__ = 'drseergio@gmail.com (Sergey Pisarenko)'
 
 import logging
 import os
+import sys
 
-from gi.repository import GExiv2
+try:
+  from gi.repository import GExiv2
+except ImportError:
+  print ('You must have GExiv2 installed, please visit:\n'
+         'http://redmine.yorba.org/projects/gexiv2/wiki')
+  sys.exit(1)
 
 from photofs.filters import escape
 from photofs.filters import filter_datetime
