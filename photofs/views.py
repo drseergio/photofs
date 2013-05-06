@@ -1,11 +1,8 @@
-#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 
 '''views.py: implements various viewing modes that photofs provides.'''
 
 __author__ = 'drseergio@gmail.com (Sergey Pisarenko)'
-
-__license__ = 'GPL'
-__version__ = '1.0.0'
 
 import fuse
 

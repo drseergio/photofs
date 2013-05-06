@@ -4,19 +4,16 @@
 
 __author__ = 'drseergio@gmail.com (Sergey Pisarenko)'
 
-__license__ = 'GPL'
-__version__ = '1.0.0'
-
 import os
 import sys
 
 import fuse
 from fuse import Fuse
 
-from storage import PhotoDb
-from views import GetView, ListViews
-from walker import PhotoWalker
-from watcher import PhotoWatcher
+from photofs.storage import PhotoDb
+from photofs.views import GetView, ListViews
+from photofs.walker import PhotoWalker
+from photofs.watcher import PhotoWatcher
 
 fuse.fuse_python_api = (0, 2)
 

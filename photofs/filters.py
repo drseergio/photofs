@@ -1,11 +1,8 @@
-#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 
 '''filters.py transforms values returned by GExiv2 library.'''
 
 __author__ = 'drseergio@gmail.com (Sergey Pisarenko)'
-
-__license__ = 'GPL'
-__version__ = '1.0.0'
 
 from datetime import datetime
 from decimal import Decimal
@@ -38,4 +35,6 @@ def filter_label(meta, k):
 
 
 def escape(value):
-  return value.replace('/', '')
+  if value:
+    return value.replace('/', '')
+  return None

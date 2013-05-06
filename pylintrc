@@ -1,5 +1,0 @@
-[FORMAT]
-indent-string='  '
-
-[BASIC]
-attr-rgx=[a-z_][a-z0-9_]{1,30}$

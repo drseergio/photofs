@@ -1,21 +1,19 @@
-#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 
 '''walker.py: traverses real file-system and extracts photo meta-data.'''
 
 __author__ = 'drseergio@gmail.com (Sergey Pisarenko)'
 
-__license__ = 'GPL'
-__version__ = '1.0.0'
-
+import logging
 import os
 
 from gi.repository import GExiv2
 
-from filters import escape
-from filters import filter_datetime
-from filters import filter_fnumber
-from filters import filter_label
-from filters import filter_lens_spec
+from photofs.filters import escape
+from photofs.filters import filter_datetime
+from photofs.filters import filter_fnumber
+from photofs.filters import filter_label
+from photofs.filters import filter_lens_spec
 
 
 class PhotoWalker(object):
@@ -44,7 +42,9 @@ class PhotoWalker(object):
         full_path = os.path.join(dirname, filename)
         try:
           meta = self.ReadMetadata(full_path)
-        except Exception:
+        except Exception, e:
+          logging.error('Failed adding %s', full_path)
+          logging.exception(e)
           continue
         self.db.StorePhoto(full_path, meta)
 
