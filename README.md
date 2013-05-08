@@ -23,9 +23,14 @@ systems entirely in user-space. photofs also utilizes inotify to update its
 virtual views when new photos are added or existing photos are changed or
 modified.
 
-photofs keeps its index in a temporary sqlite3 database stored in /tmp. The
-database is re-created every time upon the start so there is no state preserved
-between runs. By design, photofs should be kept running and inotify feature of
+photofs keeps its indexes in ".photofs" folder in user's home path. A database
+is created for each unique source (root) path. If you run multiple instances of
+photofs per given root path (e.g. for different view modes) only one of the
+instances will have write access to the database and will handle updates.
+Remaining instances will be read-only. If the instance which has write access is
+terminated one of the other instances will take over write-access.
+
+By design, photofs should be kept running and inotify feature of
 the Linux kernel will ensure that all updates to the underlying files are
 automatically reflected.
 
