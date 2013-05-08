@@ -67,5 +67,7 @@ Dependencies
 
   * python fuse (Gentoo ebuild dev-python/fuse-python)
 
+  * pygobject (Gentoo ebuild dev-python/pygobject)
+
 If not available in your distribution, GExiv2 can be downloaded from:
 http://redmine.yorba.org/projects/gexiv2/wiki
