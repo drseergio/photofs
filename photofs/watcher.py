@@ -11,7 +11,9 @@ from pyinotify import WatchManager, ThreadedNotifier, EventsCodes, ProcessEvent
 
 class PhotoWatcher(ProcessEvent):
   MASK = (EventsCodes.ALL_FLAGS['IN_DELETE'] |
-          EventsCodes.ALL_FLAGS['IN_CLOSE_WRITE'])
+          EventsCodes.ALL_FLAGS['IN_CLOSE_WRITE'] |
+          EventsCodes.ALL_FLAGS['IN_MOVED_FROM'] |
+          EventsCodes.ALL_FLAGS['IN_MOVED_TO'])
 
   def __init__(self, db, walker, root):
     self.root = root
@@ -29,6 +31,18 @@ class PhotoWatcher(ProcessEvent):
 
   def process_IN_DELETE(self, event):
     self.db.DeletePhoto(os.path.join(event.path, event.name))
+
+  def process_IN_MOVED_FROM(self, event):
+    self.process_IN_DELETE(event)
+
+  def process_IN_MOVED_TO(self, event):
+    full_path = os.path.join(event.path, event.name)
+    try:
+      meta = self.walker.ReadMetadata(full_path)
+    except Exception:
+      return
+
+    self.db.StorePhoto(full_path, meta)
 
   def process_IN_CLOSE_WRITE(self, event):
     full_path = os.path.join(event.path, event.name)

@@ -4,8 +4,10 @@
 
 __author__ = 'drseergio@gmail.com (Sergey Pisarenko)'
 
+import logging
 import os
 import sys
+import threading
 
 import fuse
 from fuse import Fuse
@@ -22,18 +24,34 @@ class PhotoFS(Fuse):
   def main(self, *a, **kw):
     if not self.fuse_args.getmod('showhelp'):
       self._validate_args()
-      self.db = PhotoDb()
-      self.walker = PhotoWalker(self.root, self.db)
+      self.db = PhotoDb(self.root)
       self.view = GetView(self.mode)(self.db)
-      self.walker.Walk()
-      self.watcher = PhotoWatcher(self.db, self.walker, self.root)
-      self.watcher.Watch()
+
+      if self.db.TryLock():
+        logging.info('Acquired database lock, will write/update it')
+        self.read_only = False
+        self.walker = PhotoWalker(self.root, self.db)
+        self.watcher = PhotoWatcher(self.db, self.walker, self.root)
+        if self.db.IsEmptyDb():
+          self.walker.Walk()
+        else:
+          self.walker.Sync()
+        self.watcher.Watch()
+      else:
+        logging.error('Failed to acquire database lock, not doing updates')
+        self.read_only = True
 
     return Fuse.main(self, *a, **kw)
 
+  def fsinit(self):
+    if self.read_only:
+      thread = threading.Thread(target=self._wait_lock)
+      thread.start()
+
   def fsdestroy(self):
-    self.watcher.Stop()
-    self.db.Delete()
+    if not self.read_only:
+      self.watcher.Stop()
+      self.db.Delete()
 
   def getattr(self, path):
     return self.view.getattr(path)
@@ -46,6 +64,15 @@ class PhotoFS(Fuse):
  
   def read(self, path, length, offset):
     return self.view.read(path, length, offset)
+
+  def _wait_lock(self):
+    self.db.WaitLock()
+    logging.info('Acquired database lock, will write/update it')
+    self.read_only = False
+    self.walker = PhotoWalker(self.root, self.db)
+    self.watcher = PhotoWatcher(self.db, self.walker, self.root)
+    self.walker.Sync()
+    self.watcher.Watch()
 
   def _validate_args(self):
     if not self.cmdline[0].root:

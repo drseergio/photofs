@@ -4,24 +4,46 @@
 
 __author__ = 'drseergio@gmail.com (Sergey Pisarenko)'
 
-import sqlite3
-
+import fcntl
+import hashlib
 import os
-import tempfile
+import sqlite3
 
 
 class PhotoDb(object):
+  _CONF_DIR = os.path.join(os.path.expanduser('~'), '.photofs')
   _COLUMNS = [
       'path', 'datetime', 'year', 'month', 'day', 'f','iso', 'make',
       'camera', 'focal_length', 'lens_model', 'lens_spec', 'label']
 
-  def __init__(self):
-    self.db_path = tempfile.mkstemp()[1]
+  def __init__(self, path):
+    self._CreateConfFolder()
+    self.db_path = os.path.join(self._CONF_DIR, self._GenerateDbId(path))
+    self.db_existed = os.path.isfile(self.db_path)
     self.unique_tags = set()
+
+  def IsEmptyDb(self):
+    return not self.db_existed
+
+  def TryLock(self):
+    lock_path = '%s%s' % (self.db_path, '.lock')
+    try:
+      self.lock_fd = open(lock_path, 'w')
+      fcntl.lockf(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+      return False
+
     self._CreateTables()
+    return True
+
+  def WaitLock(self):
+    lock_path = '%s%s' % (self.db_path, '.lock')
+    self.lock_fd = open(lock_path, 'w')
+    fcntl.lockf(self.lock_fd, fcntl.LOCK_EX)
 
   def Delete(self):
-    os.remove(self.db_path)
+    pass
+    #os.remove(self.db_path)
 
   def StorePhoto(self, path, meta):
     conn = sqlite3.connect(self.db_path)
@@ -173,25 +195,45 @@ class PhotoDb(object):
     conn.close()
     return photos
 
+  def GetAllPhotoPaths(self):
+    conn = sqlite3.connect(self.db_path)
+    cursor = conn.cursor()
+    photos = []
+    for row in cursor.execute('SELECT path FROM files'):
+      photos.append(row[0])
+    conn.close()
+    return photos
+
+  def _CreateConfFolder(self):
+    if not os.path.isdir(self._CONF_DIR):
+      os.makedirs(self._CONF_DIR)
+
+  def _GenerateDbId(self, path):
+    abs_path = os.path.abspath(path)
+    return hashlib.md5(abs_path).hexdigest()
+
   def _CreateTables(self):
     conn = sqlite3.connect(self.db_path)
     columns = ','.join(self._COLUMNS)
     cursor = conn.cursor()
     cursor.execute(
-        'CREATE TABLE `files_tags` (`path`, `tag`, `files_rowid`, `datetime`)')
+        '''CREATE TABLE IF NOT EXISTS
+           `files_tags` (`path`, `tag`, `files_rowid`, `datetime`)''')
     cursor.execute(
-        'CREATE INDEX `tags-path-index` ON `files_tags` (`path`)')
+        'CREATE INDEX IF NOT EXISTS `tags-path-index` ON `files_tags` (`path`)')
     cursor.execute(
-        'CREATE INDEX `tags-tags-index` ON `files_tags` (`tag`)')
+        'CREATE INDEX IF NOT EXISTS `tags-tags-index` ON `files_tags` (`tag`)')
     cursor.execute(
-        'CREATE INDEX `tags-rowid-index` ON `files_tags` (`files_rowid`)')
+        '''CREATE INDEX IF NOT EXISTS
+           `tags-rowid-index` ON `files_tags` (`files_rowid`)''')
 
     cursor.execute(
-        '''CREATE TABLE `files` (`id` INTEGER PRIMARY
+        '''CREATE TABLE IF NOT EXISTS `files` (`id` INTEGER PRIMARY
         KEY AUTOINCREMENT, %s)''' % columns)
     for column in self._COLUMNS:
       cursor.execute(
-          'CREATE INDEX `files-{0}-index` ON `files` (`{0}`)'.format(column))
+          '''CREATE INDEX IF NOT EXISTS
+             `files-{0}-index` ON `files` (`{0}`)'''.format(column))
     conn.commit()
     conn.close()
 

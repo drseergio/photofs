@@ -7,6 +7,8 @@ __author__ = 'drseergio@gmail.com (Sergey Pisarenko)'
 import logging
 import os
 import sys
+import threading
+import time
 
 try:
   from gi.repository import GExiv2
@@ -42,10 +44,12 @@ class PhotoWalker(object):
     self.path = path
     self.db = db
 
-  def Walk(self):
+  def Walk(self, existing_photos=set()):
     for dirname, _dirnames, filenames in os.walk(self.path):
       for filename in filenames:
         full_path = os.path.join(dirname, filename)
+        if full_path in existing_photos:
+          continue
         try:
           meta = self.ReadMetadata(full_path)
         except Exception, e:
@@ -53,6 +57,17 @@ class PhotoWalker(object):
           logging.exception(e)
           continue
         self.db.StorePhoto(full_path, meta)
+
+  def Sync(self):
+    thread = threading.Thread(target=self._Sync)
+    thread.start()
+
+  def _Sync(self):
+    existing_photos = set(self.db.GetAllPhotoPaths())
+    for path in existing_photos:
+      if not os.path.isfile(path):
+        self.db.DeletePhoto(path)
+    self.Walk(existing_photos)
 
   def ReadMetadata(self, path):
     meta = {}

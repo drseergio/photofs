@@ -11,6 +11,9 @@ _DATE_FORMAT = '%Y:%m:%d %H:%M:%S'
 
 
 def filter_datetime(meta, k):
+  value = meta.get(k)
+  if not value:
+    raise ValueError('photo does not have date information')
   return datetime.strptime(meta.get(k), _DATE_FORMAT)
 
 
@@ -26,8 +29,10 @@ def filter_lens_spec(meta, k):
   value = meta.get(k)
   if not value and meta.get_focal_length():
     return str(int(meta.get_focal_length()))
-  value_split = value.split(' ')
-  return value_split[0].split('/')[0] + '-' + value_split[1].split('/')[0]
+  if value:
+    value_split = value.split(' ')
+    return value_split[0].split('/')[0] + '-' + value_split[1].split('/')[0]
+  return None
 
 
 def filter_label(meta, k):
