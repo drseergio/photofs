@@ -55,7 +55,11 @@ $ python photofs.py -o root=/home/drseergio/Photos/ -o mode=date /home/drseergio
 Dependencies
 =======
 
-  * GExiv2 library with enable introspection (Gentoo ebuild media-libs/gexiv2 introspection)
+  * GExiv2 library version 0.6.0 or newer with enabled introspection
+  (Gentoo ebuild =media-libs/gexiv2-0.6.0 with USE flag "introspection")
+
+  * exiv2 library with XMP support
+  (Gentoo ebuild media-gfx/exiv2 with USE flag "xmp")
 
   * pyinotify (Gentoo ebuild dev-python/pyinotify)
 
