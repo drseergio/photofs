@@ -32,6 +32,14 @@ automatically reflected.
 
 photofs is licensed under GPLv3
 
+Installation
+=======
+
+photofs uses setuptools. To install photofs run the following command
+```
+$ sudo python setup.py --install
+```
+
 Example usage:
 =======
 
@@ -42,14 +50,13 @@ $ python photofs.py -o root=/home/drseergio/Photos/ -o mode=date /home/drseergio
 Dependencies
 =======
 
-  * GExiv2 library with enable introspection
-  media-libs/gexiv2 introspection
+  * GExiv2 library with enable introspection (Gentoo ebuild media-libs/gexiv2 introspection)
 
-  * pyinotify
-  dev-python/pyinotify
+  * pyinotify (Gentoo ebuild dev-python/pyinotify)
 
-  * sqlite3
-  dev-db/sqlite
+  * sqlite3 (Gentoo ebuild dev-db/sqlite)
 
-  * python fuse
-  dev-python/fuse-python
+  * python fuse (Gentoo ebuild dev-python/fuse-python)
+
+If not available in your distribution, GExiv2 can be downloaded from:
+http://redmine.yorba.org/projects/gexiv2/wiki
