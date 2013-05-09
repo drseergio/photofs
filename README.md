@@ -15,6 +15,22 @@ photofs is a virtual file system for viewing photos. photofs lists photos in
   * conf -- drill down by photo settings, such as F-stop, shutter speed, ISO; e.g.:
           camera/Canon/f/2.8/iso/100/...
 
+A little bit more about the "sets" mode
+=======
+
+I have written "sets" mode mostly for my own photo work-flow. I typically view
+photos in albums, e.g. "2011-02-01 Trip to Romania" and I am interested in
+seeing all non-trashed (unfocused, flash did not fire) photos as well as
+"selects" (or best pictures) only.
+
+The root level in "sets" mode lists all available sets. As mentioned above,
+set names are extracted from XMP tag "label". Under each set, all photos for
+that set are listed.
+
+In addition, in each set folder you will see a "selects" sub-folder. That is
+intended for showing "selects" (or best) photos from that set. To determine if
+a photo is a "select" it must have a "select" tag added to it.
+
 How it works
 =======
 

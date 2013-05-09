@@ -51,7 +51,6 @@ class PhotoFS(Fuse):
   def fsdestroy(self):
     if not self.read_only:
       self.watcher.Stop()
-      self.db.Delete()
 
   def getattr(self, path):
     return self.view.getattr(path)

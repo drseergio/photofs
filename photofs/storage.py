@@ -13,8 +13,8 @@ import sqlite3
 class PhotoDb(object):
   _CONF_DIR = os.path.join(os.path.expanduser('~'), '.photofs')
   _COLUMNS = [
-      'path', 'datetime', 'year', 'month', 'day', 'f','iso', 'make',
-      'camera', 'focal_length', 'lens_model', 'lens_spec', 'label']
+      'path', 'datetime', 'last_modified', 'year', 'month', 'day', 'f','iso',
+      'make', 'camera', 'focal_length', 'lens_model', 'lens_spec', 'label']
 
   def __init__(self, path):
     self._CreateConfFolder()
@@ -41,16 +41,12 @@ class PhotoDb(object):
     self.lock_fd = open(lock_path, 'w')
     fcntl.lockf(self.lock_fd, fcntl.LOCK_EX)
 
-  def Delete(self):
-    pass
-    #os.remove(self.db_path)
-
   def StorePhoto(self, path, meta):
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
     values = [meta[c] for c in self._COLUMNS]
     cursor.execute('''INSERT INTO `files` (%s)
-        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''' % ','.join(self._COLUMNS),
         values)
     if meta['tags']:
@@ -74,7 +70,7 @@ class PhotoDb(object):
     months = []
     for row in cursor.execute(
         '''SELECT DISTINCT(month) FROM files WHERE year = ?
-           ORDER BY month ASC''', (year,)):
+        ORDER BY month ASC''', (year,)):
       months.append(str(row[0]))
     conn.close()
     return months
@@ -85,7 +81,7 @@ class PhotoDb(object):
     days = []
     for row in cursor.execute(
         '''SELECT DISTINCT(day) FROM files WHERE year = ? AND month = ?
-           ORDER BY day ASC''', (year, month)):
+        ORDER BY day ASC''', (year, month)):
       days.append(str(row[0]))
     conn.close()
     return days
@@ -96,8 +92,8 @@ class PhotoDb(object):
     photos = []
     for row in cursor.execute(
         '''SELECT id FROM files
-           WHERE year = ? AND month = ? AND day = ?
-           ORDER BY datetime ASC''', (year, month, day)):
+        WHERE year = ? AND month = ? AND day = ?
+        ORDER BY datetime ASC''', (year, month, day)):
       photos.append(row[0])
     conn.close()
     return photos
@@ -144,6 +140,19 @@ class PhotoDb(object):
     conn.close()
     return photos
 
+  def ListSelectsByLabel(self, select_tag, label):
+    conn = sqlite3.connect(self.db_path)
+    cursor = conn.cursor()
+    photos = []
+    for row in cursor.execute(
+        '''SELECT files.id FROM files, files_tags WHERE label = ? AND
+        files_tags.tag = ? AND files_tags.files_rowid == files.id
+        ORDER BY files.datetime ASC''',
+        (label, select_tag)):
+      photos.append(row[0])
+    conn.close()
+    return photos
+
   def ListPhotosByTags(self, tags):
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
@@ -178,8 +187,7 @@ class PhotoDb(object):
   def IsConfValueValid(self, conf, value):
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
-    cursor.execute(
-        '''SELECT id FROM files WHERE {0} = ?'''.format(conf), (value,))
+    cursor.execute('SELECT id FROM files WHERE {0} = ?'.format(conf), (value,))
     result = cursor.fetchone()
     conn.close()
     return result != None
@@ -195,12 +203,12 @@ class PhotoDb(object):
     conn.close()
     return photos
 
-  def GetAllPhotoPaths(self):
+  def GetAllPhotosLastModified(self):
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
-    photos = []
-    for row in cursor.execute('SELECT path FROM files'):
-      photos.append(row[0])
+    photos = {}
+    for row in cursor.execute('SELECT path, last_modified FROM files'):
+      photos[row[0]] = row[1]
     conn.close()
     return photos
 
@@ -218,14 +226,14 @@ class PhotoDb(object):
     cursor = conn.cursor()
     cursor.execute(
         '''CREATE TABLE IF NOT EXISTS
-           `files_tags` (`path`, `tag`, `files_rowid`, `datetime`)''')
+        `files_tags` (`path`, `tag`, `files_rowid`, `datetime`)''')
     cursor.execute(
         'CREATE INDEX IF NOT EXISTS `tags-path-index` ON `files_tags` (`path`)')
     cursor.execute(
         'CREATE INDEX IF NOT EXISTS `tags-tags-index` ON `files_tags` (`tag`)')
     cursor.execute(
         '''CREATE INDEX IF NOT EXISTS
-           `tags-rowid-index` ON `files_tags` (`files_rowid`)''')
+        `tags-rowid-index` ON `files_tags` (`files_rowid`)''')
 
     cursor.execute(
         '''CREATE TABLE IF NOT EXISTS `files` (`id` INTEGER PRIMARY
@@ -233,7 +241,7 @@ class PhotoDb(object):
     for column in self._COLUMNS:
       cursor.execute(
           '''CREATE INDEX IF NOT EXISTS
-             `files-{0}-index` ON `files` (`{0}`)'''.format(column))
+          `files-{0}-index` ON `files` (`{0}`)'''.format(column))
     conn.commit()
     conn.close()
 

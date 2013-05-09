@@ -124,6 +124,8 @@ class _PhotoFsDateView(_AbstractView):
 
 class _PhotoFsSetsView(_AbstractView):
   _NAME = 'sets'
+  _SELECTS_DIR = 'selects'
+  _SELECTS_TAG = 'select'
 
   def getattr(self, path):
     st = _FsStat()
@@ -137,7 +139,13 @@ class _PhotoFsSetsView(_AbstractView):
       else:
         return st
     elif len(path_split) == 3:
+      if path_split[2] == self._SELECTS_DIR:
+        return st
       real_st = self._GetRealFileStat(st, path_split[2])
+      if (real_st):
+        return real_st
+    elif len(path_split) == 4:
+      real_st = self._GetRealFileStat(st, path_split[3])
       if (real_st):
         return real_st
 
@@ -149,7 +157,12 @@ class _PhotoFsSetsView(_AbstractView):
     path_split = path.split('/')
     if path == '/':  # list sets
       entries.extend(self.photo_db.GetLabels())
+    elif len(path_split) == 3:
+      entries.extend(
+          self._FormatPhotoList(self.photo_db.ListSelectsByLabel(
+              self._SELECTS_TAG, path_split[1])))
     elif path_split[1]:
+      entries.append(self._SELECTS_DIR)
       entries.extend(
           self._FormatPhotoList(self.photo_db.ListPhotosByLabel(path_split[1])))
 

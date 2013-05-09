@@ -4,11 +4,11 @@
 
 __author__ = 'drseergio@gmail.com (Sergey Pisarenko)'
 
+from datetime import datetime
 import logging
 import os
 import sys
 import threading
-import time
 
 try:
   from gi.repository import GExiv2
@@ -44,12 +44,16 @@ class PhotoWalker(object):
     self.path = path
     self.db = db
 
-  def Walk(self, existing_photos=set()):
+  def Walk(self, existing_photo_dict={}):
+    existing_photos = existing_photo_dict.keys()
     for dirname, _dirnames, filenames in os.walk(self.path):
       for filename in filenames:
         full_path = os.path.join(dirname, filename)
         if full_path in existing_photos:
-          continue
+          if self._GetLastModified(full_path) == existing_photo_dict[full_path]:
+            continue
+          else:
+            self.db.DeletePhoto(full_path)
         try:
           meta = self.ReadMetadata(full_path)
         except Exception, e:
@@ -63,11 +67,12 @@ class PhotoWalker(object):
     thread.start()
 
   def _Sync(self):
-    existing_photos = set(self.db.GetAllPhotoPaths())
+    existing_photo_dict = self.db.GetAllPhotosLastModified()
+    existing_photos = existing_photo_dict.keys()
     for path in existing_photos:
       if not os.path.isfile(path):
         self.db.DeletePhoto(path)
-    self.Walk(existing_photos)
+    self.Walk(existing_photo_dict)
 
   def ReadMetadata(self, path):
     meta = {}
@@ -89,6 +94,10 @@ class PhotoWalker(object):
     meta['month'] = meta['datetime'].strftime('%m')
     meta['day'] = meta['datetime'].strftime('%d')
     meta['datetime'] = meta['datetime'].strftime('%Y%m%d%H%M%S')
+    meta['last_modified'] = self._GetLastModified(path)
     meta['path'] = path
 
     return meta
+
+  def _GetLastModified(self, path):
+    return datetime.fromtimestamp(os.path.getmtime(path)).strftime('%Y%m%d%H%M%S')
