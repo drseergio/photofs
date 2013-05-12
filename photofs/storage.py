@@ -224,10 +224,9 @@ class PhotoDb(object):
     cursor = conn.cursor()
     values = set([])
     for row in cursor.execute('SELECT `{0}` FROM files'.format(conf)):
-      values.add(str(row[0]))
+      if row[0]:
+        values.add(str(row[0]))
     conn.close()
-    if None in values:
-      values.remove(None)
     return values
 
   def IsConfValueValid(self, conf, value):
