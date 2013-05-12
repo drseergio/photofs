@@ -57,32 +57,29 @@ class PhotoDb(object):
   def GetYears(self):
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
-    years = []
-    for row in cursor.execute(
-        '''SELECT DISTINCT(year) FROM files ORDER BY year DESC'''):
-      years.append(str(row[0]))
+    years = set([])
+    for row in cursor.execute('SELECT year FROM files'):
+      years.add(str(row[0]))
     conn.close()
     return years
 
   def GetMonths(self, year):
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
-    months = []
+    months = set([])
     for row in cursor.execute(
-        '''SELECT DISTINCT(month) FROM files WHERE year = ?
-        ORDER BY month ASC''', (year,)):
-      months.append(str(row[0]))
+        'SELECT month FROM files WHERE year = ?', (year,)):
+      months.add(str(row[0]))
     conn.close()
     return months
 
   def GetDays(self, year, month):
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
-    days = []
+    days = set([])
     for row in cursor.execute(
-        '''SELECT DISTINCT(day) FROM files WHERE year = ? AND month = ?
-        ORDER BY day ASC''', (year, month)):
-      days.append(str(row[0]))
+        'SELECT day FROM files WHERE year = ? AND month = ?', (year, month)):
+      days.add(str(row[0]))
     conn.close()
     return days
 
@@ -136,20 +133,18 @@ class PhotoDb(object):
   def GetLabels(self):
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
-    labels = []
-    for row in cursor.execute(
-        '''SELECT DISTINCT(label) FROM files ORDER BY label ASC'''):
-      labels.append(str(row[0]))
+    labels = set([])
+    for row in cursor.execute('SELECT label FROM files'):
+      labels.add(str(row[0]))
     conn.close()
     return labels
 
   def GetTags(self):
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
-    tags = []
-    for row in cursor.execute(
-        '''SELECT DISTINCT(tag) FROM files_tags ORDER BY tag ASC'''):
-      tags.append(str(row[0]))
+    tags = set([])
+    for row in cursor.execute('SELECT tag FROM files_tags'):
+      tags.add(str(row[0]))
     conn.close()
     return tags
 
@@ -201,10 +196,9 @@ class PhotoDb(object):
   def GetConfValues(self, conf):
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
-    values = []
-    for row in cursor.execute(
-        'SELECT DISTINCT(`{0}`) FROM files ORDER BY `{0}` ASC'.format(conf)):
-      values.append(str(row[0]))
+    values = set([])
+    for row in cursor.execute('SELECT `{0}` FROM files'.format(conf)):
+      values.add(str(row[0]))
     conn.close()
     return values
 
