@@ -86,6 +86,30 @@ class PhotoDb(object):
     conn.close()
     return days
 
+  def ListPhotosByYear(self, year):
+    conn = sqlite3.connect(self.db_path)
+    cursor = conn.cursor()
+    photos = []
+    for row in cursor.execute(
+        '''SELECT id FROM files
+        WHERE year = ?
+        ORDER BY datetime ASC''', (year,)):
+      photos.append(row[0])
+    conn.close()
+    return photos
+
+  def ListPhotosByMonth(self, year, month):
+    conn = sqlite3.connect(self.db_path)
+    cursor = conn.cursor()
+    photos = []
+    for row in cursor.execute(
+        '''SELECT id FROM files
+        WHERE year = ? AND month = ?
+        ORDER BY datetime ASC''', (year,month)):
+      photos.append(row[0])
+    conn.close()
+    return photos
+
   def ListPhotos(self, year, month, day):
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()

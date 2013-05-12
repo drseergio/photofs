@@ -79,12 +79,20 @@ class _PhotoFsDateView(_AbstractView):
         return st
     elif len(path_split) == 3:
       if path_split[2]:  # check if month exists
+        real_st = self._GetRealFileStat(st, path_split[2])
+        if (real_st):
+          return real_st
+
         months = self.photo_db.GetMonths(path_split[1])
         month = path_split[2].split('-')[0]
         if month in months:
           return st
     elif len(path_split) == 4:
       if path_split[3]:  # check if day exists
+        real_st = self._GetRealFileStat(st, path_split[3])
+        if (real_st):
+          return real_st
+
         days = self.photo_db.GetDays(path_split[1], path_split[2].split('-')[0])
         if path_split[3] in days:
           return st
@@ -104,10 +112,14 @@ class _PhotoFsDateView(_AbstractView):
     elif len(path_split) == 2:  # list months
       year = path_split[1]
       entries.extend(self._FormatMonths(self.photo_db.GetMonths(year)))
+      entries.extend(
+          self._FormatPhotoList(self.photo_db.ListPhotosByYear(year)))
     elif len(path_split) == 3:  # list days
       year = path_split[1]
       month = path_split[2].split('-')[0]
       entries.extend(self.photo_db.GetDays(year, month))
+      entries.extend(
+          self._FormatPhotoList(self.photo_db.ListPhotosByMonth(year,month)))
     elif len(path_split) == 4:  # list actual photos
       year = path_split[1]
       month = path_split[2].split('-')[0]
