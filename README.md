@@ -58,7 +58,7 @@ Installation
 
 photofs uses setuptools. To install photofs run the following command
 ```
-$ sudo python setup.py --install
+$ sudo python setup.py install
 ```
 
 Example usage:

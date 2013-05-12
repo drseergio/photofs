@@ -46,7 +46,7 @@ class PhotoWalker(object):
 
   def Walk(self, existing_photo_dict={}):
     existing_photos = existing_photo_dict.keys()
-    for dirname, _dirnames, filenames in os.walk(self.path):
+    for dirname, _dirnames, filenames in os.walk(self.path, followlinks=True):
       for filename in filenames:
         full_path = os.path.join(dirname, filename)
         if full_path in existing_photos:
