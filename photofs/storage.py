@@ -28,9 +28,11 @@ class PhotoDb(object):
     self._PeriodicBuildCache()
 
   def BuildCache(self):
-    self.GetYears()
+    years = self.GetYears()
     self.GetLabels()
     self.GetTags()
+    for year in years:
+      self.ListPhotosByYear(year)
 
   def IsEmptyDb(self):
     return not self.db_existed
@@ -40,7 +42,6 @@ class PhotoDb(object):
     try:
       self.lock_fd = open(lock_path, 'w')
       fcntl.lockf(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-      self.lock_fd.write('acquired')
     except IOError:
       return False
 
@@ -101,6 +102,9 @@ class PhotoDb(object):
     return days
 
   def ListPhotosByYear(self, year):
+    cached = self._GetCache(year)
+    if cached:
+      return cached
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
     photos = []
@@ -110,6 +114,7 @@ class PhotoDb(object):
         ORDER BY datetime ASC''', (year,)):
       photos.append(row[0])
     conn.close()
+    self._SetCache(year, photos)
     return photos
 
   def ListPhotosByMonth(self, year, month):
