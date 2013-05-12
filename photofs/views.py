@@ -65,6 +65,7 @@ class _AbstractView(object):
 
 class _PhotoFsDateView(_AbstractView):
   _NAME = 'date'
+  _YEAR_ALL_FOLDER = 'all'
 
   def getattr(self, path):
     st = _FsStat()
@@ -78,11 +79,9 @@ class _PhotoFsDateView(_AbstractView):
       else:  # root node
         return st
     elif len(path_split) == 3:
+      if path_split[2] == self._YEAR_ALL_FOLDER:
+        return st
       if path_split[2]:  # check if month exists
-        real_st = self._GetRealFileStat(st, path_split[2])
-        if (real_st):
-          return real_st
-
         months = self.photo_db.GetMonths(path_split[1])
         month = path_split[2].split('-')[0]
         if month in months:
@@ -112,14 +111,17 @@ class _PhotoFsDateView(_AbstractView):
     elif len(path_split) == 2:  # list months
       year = path_split[1]
       entries.extend(self._FormatMonths(self.photo_db.GetMonths(year)))
-      entries.extend(
-          self._FormatPhotoList(self.photo_db.ListPhotosByYear(year)))
-    elif len(path_split) == 3:  # list days
+      entries.append(self._YEAR_ALL_FOLDER)
+    elif len(path_split) == 3:
       year = path_split[1]
-      month = path_split[2].split('-')[0]
-      entries.extend(self.photo_db.GetDays(year, month))
-      entries.extend(
-          self._FormatPhotoList(self.photo_db.ListPhotosByMonth(year,month)))
+      if path_split[2] == self._YEAR_ALL_FOLDER:
+        entries.extend(
+            self._FormatPhotoList(self.photo_db.ListPhotosByYear(year)))
+      else:  # list days
+        month = path_split[2].split('-')[0]
+        entries.extend(self.photo_db.GetDays(year, month))
+        entries.extend(
+            self._FormatPhotoList(self.photo_db.ListPhotosByMonth(year,month)))
     elif len(path_split) == 4:  # list actual photos
       year = path_split[1]
       month = path_split[2].split('-')[0]
