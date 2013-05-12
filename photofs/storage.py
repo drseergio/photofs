@@ -8,6 +8,7 @@ import fcntl
 import hashlib
 import os
 import sqlite3
+from threading import Lock
 
 
 class PhotoDb(object):
