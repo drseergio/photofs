@@ -20,11 +20,20 @@ class PhotoWatcher(ProcessEvent):
     self.db = db
     self.walker = walker
     self.wm = WatchManager()
+    self.wdds = []
 
   def Watch(self):
     self.notifier = ThreadedNotifier(self.wm, self)
     self.notifier.start()
-    self.wdd = self.wm.add_watch(self.root, self.MASK, rec=True)
+    self.wdds.append(self.wm.add_watch(self.root, self.MASK, rec=True))
+    # add soft link sub-folders
+    for dirname, dirnames, _filenames in os.walk(self.root, followlinks=True):
+      for d in dirnames:
+        path = os.path.join(dirname, d)
+        if os.path.islink(path):
+          print 'AAAAAAA' + path
+          self.wdds.append(
+              self.wm.add_watch(os.path.realpath(path), self.MASK, rec=True))
 
   def Stop(self):
     self.notifier.stop()
