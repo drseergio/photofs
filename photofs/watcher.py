@@ -31,7 +31,6 @@ class PhotoWatcher(ProcessEvent):
       for d in dirnames:
         path = os.path.join(dirname, d)
         if os.path.islink(path):
-          print 'AAAAAAA' + path
           self.wdds.append(
               self.wm.add_watch(os.path.realpath(path), self.MASK, rec=True))
 
