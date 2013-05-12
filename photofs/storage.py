@@ -8,7 +8,7 @@ import fcntl
 import hashlib
 import os
 import sqlite3
-from threading import Lock
+from threading import Lock, Timer
 
 
 class PhotoDb(object):
@@ -16,6 +16,7 @@ class PhotoDb(object):
   _COLUMNS = [
       'path', 'datetime', 'last_modified', 'year', 'month', 'day', 'f','iso',
       'make', 'camera', 'focal_length', 'lens_model', 'lens_spec', 'label']
+  _CACHE_REFRESH_MIN = 3  # check if cache is valid and build if needed
 
   def __init__(self, path):
     self._CreateConfFolder()
@@ -24,6 +25,7 @@ class PhotoDb(object):
     self.unique_tags = set()
     self.cache = {}
     self.cache_lock = Lock()
+    self._PeriodicBuildCache()
 
   def BuildCache(self):
     self.GetYears()
@@ -305,6 +307,11 @@ class PhotoDb(object):
     self.cache_lock.acquire()
     self.cache = {}
     self.cache_lock.release()
+
+  def _PeriodicBuildCache(self):
+    t = Timer(self._CACHE_REFRESH_MIN * 60, self._PeriodicBuildCache)
+    t.daemon = True
+    t.start()
 
   def _HandleTags(self, cursor, tags, path, photo_datetime):
     rowid = cursor.lastrowid
