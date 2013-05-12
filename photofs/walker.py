@@ -65,6 +65,7 @@ class PhotoWalker(object):
 
   def Sync(self):
     thread = threading.Thread(target=self._Sync)
+    thread.daemon = True
     thread.start()
 
   def _Sync(self):
