@@ -226,7 +226,8 @@ class PhotoDb(object):
     for row in cursor.execute('SELECT `{0}` FROM files'.format(conf)):
       values.add(str(row[0]))
     conn.close()
-    values.remove(None)
+    if None in values:
+      values.remove(None)
     return values
 
   def IsConfValueValid(self, conf, value):
