@@ -61,6 +61,7 @@ class PhotoWalker(object):
           logging.exception(e)
           continue
         self.db.StorePhoto(full_path, meta)
+    self.db.BuildCache()
 
   def Sync(self):
     thread = threading.Thread(target=self._Sync)
@@ -73,6 +74,7 @@ class PhotoWalker(object):
       if not os.path.isfile(path):
         self.db.DeletePhoto(path)
     self.Walk(existing_photo_dict)
+    self.db.BuildCache()
 
   def ReadMetadata(self, path):
     meta = {}

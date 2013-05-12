@@ -21,6 +21,13 @@ class PhotoDb(object):
     self.db_path = os.path.join(self._CONF_DIR, self._GenerateDbId(path))
     self.db_existed = os.path.isfile(self.db_path)
     self.unique_tags = set()
+    self.cache = {}
+    self.cache_lock = Lock()
+
+  def BuildCache(self):
+    self.GetYears()
+    self.GetLabels()
+    self.GetTags()
 
   def IsEmptyDb(self):
     return not self.db_existed
@@ -30,6 +37,7 @@ class PhotoDb(object):
     try:
       self.lock_fd = open(lock_path, 'w')
       fcntl.lockf(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+      self.lock_fd.write('acquired')
     except IOError:
       return False
 
@@ -40,6 +48,7 @@ class PhotoDb(object):
     lock_path = '%s%s' % (self.db_path, '.lock')
     self.lock_fd = open(lock_path, 'w')
     fcntl.lockf(self.lock_fd, fcntl.LOCK_EX)
+    self.lock_fd.write('acquired')
 
   def StorePhoto(self, path, meta):
     conn = sqlite3.connect(self.db_path)
@@ -53,14 +62,19 @@ class PhotoDb(object):
       self._HandleTags(cursor, meta['tags'], path, meta['datetime'])
     conn.commit()
     conn.close()
+    self._EmptyCache()
 
   def GetYears(self):
+    cached = self._GetCache('years')
+    if cached:
+      return cached
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
     years = set([])
     for row in cursor.execute('SELECT year FROM files'):
       years.add(str(row[0]))
     conn.close()
+    self._SetCache('years', years)
     return years
 
   def GetMonths(self, year):
@@ -131,21 +145,29 @@ class PhotoDb(object):
     return None
 
   def GetLabels(self):
+    cached = self._GetCache('labels')
+    if cached:
+      return cached
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
     labels = set([])
     for row in cursor.execute('SELECT label FROM files'):
       labels.add(str(row[0]))
     conn.close()
+    self._SetCache('labels', labels)
     return labels
 
   def GetTags(self):
+    cached = self._GetCache('tags')
+    if cached:
+      return cached
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
     tags = set([])
     for row in cursor.execute('SELECT tag FROM files_tags'):
       tags.add(str(row[0]))
     conn.close()
+    self._SetCache('tags', tags)
     return tags
 
   def ListPhotosByLabel(self, label):
@@ -192,6 +214,7 @@ class PhotoDb(object):
     cursor.execute('DELETE FROM files_tags WHERE path = ?', (photo_path,))
     conn.commit()
     conn.close()
+    self._EmptyCache()
 
   def GetConfValues(self, conf):
     conn = sqlite3.connect(self.db_path)
@@ -262,6 +285,22 @@ class PhotoDb(object):
           `files-{0}-index` ON `files` (`{0}`)'''.format(column))
     conn.commit()
     conn.close()
+
+  def _GetCache(self, key):
+    self.cache_lock.acquire()
+    val = self.cache[key]
+    self.cache_lock.release()
+    return val
+
+  def _SetCache(self, key, value):
+    self.cache_lock.acquire()
+    self.cache[key] = val
+    self.cache_lock.release()
+
+  def _EmptyCache(self):
+    self.cache_lock.acquire()
+    self.cache = {}
+    self.cache_lock.release()
 
   def _HandleTags(self, cursor, tags, path, photo_datetime):
     rowid = cursor.lastrowid
