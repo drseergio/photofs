@@ -289,13 +289,16 @@ class PhotoDb(object):
 
   def _GetCache(self, key):
     self.cache_lock.acquire()
-    val = self.cache[key]
+    if key in self.cache:
+      val = self.cache[key]
+    else:
+      val = None
     self.cache_lock.release()
     return val
 
   def _SetCache(self, key, value):
     self.cache_lock.acquire()
-    self.cache[key] = val
+    self.cache[key] = value
     self.cache_lock.release()
 
   def _EmptyCache(self):
