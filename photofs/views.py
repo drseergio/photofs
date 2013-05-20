@@ -51,7 +51,6 @@ class _AbstractView(object):
   def open(self, path, flags):
     real_path = self._GetRealPath(path)
     if real_path:
-      print 'FLAGS! ' +  str(flags)
       if (flags & 3) == os.O_RDONLY:
         return open(real_path, 'rb')
       elif (flags & 3) == os.O_WRONLY or (flags & 3) == os.O_RDWR:
@@ -65,7 +64,7 @@ class _AbstractView(object):
       match = self._QEYTAKS_TMP_REGEX.match(path_split[-1])
       if match:
         real_path = self.tmp_files[path]
-        return open(real_path, 'wb')
+        return open(real_path, 'ab')
     return -errno.ENOENT
 
   def read(self, path, length, offset, fh):
