@@ -25,7 +25,10 @@ class PhotoDb(object):
     self.unique_tags = set()
     self.cache = {}
     self.cache_lock = Lock()
-    self._PeriodicBuildCache()
+
+    t = Timer(self._CACHE_REFRESH_MIN * 60, self._PeriodicBuildCache)
+    t.daemon = True
+    t.start()
 
   def BuildCache(self):
     years = self.GetYears()
