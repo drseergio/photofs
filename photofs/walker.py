@@ -50,7 +50,7 @@ class PhotoWalker(object):
     existing_photos = existing_photo_dict.keys()
     for dirname, _dirnames, filenames in os.walk(self.path, followlinks=True):
       for filename in filenames:
-        full_path = os.path.join(dirname, filename)
+        full_path = os.path.realpath(os.path.join(dirname, filename))
         try:
           meta = self.ReadMetadata(full_path)
         except Exception, e:
