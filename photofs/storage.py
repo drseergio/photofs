@@ -338,6 +338,7 @@ class PhotoDb(object):
     self.cache_lock.release()
 
   def _PeriodicBuildCache(self):
+    self.BuildCache()
     t = Timer(self._CACHE_REFRESH_MIN * 60, self._PeriodicBuildCache)
     t.daemon = True
     t.start()
