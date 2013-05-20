@@ -24,20 +24,36 @@ class _AbstractView(object):
   def __init__(self, photo_db):
     self.photo_db = photo_db
 
-  def open(self, _path, _flags):
-    return 0
-
-  def read(self, path, length, offset):
+  def open(self, path, flags):
     path_split = path.split('/')
     match = self._FILE_ID_REGEX.match(path_split[-1])
     if match:
       photo_id = int(match.group(1), 16)
       real_path = self.photo_db.GetRealPhotoPath(photo_id)
       if real_path:
-        file_handle = open(real_path, 'rb')
-        file_handle.seek(offset)
-        return file_handle.read(length)
-    return -errno.EINVAL
+        if (flags & 3) == os.O_RDONLY:
+          return open(real_path, 'rb')
+        elif (flags & 3) == os.O_WRONLY:
+          return open(real_path, 'wb')
+        else:
+          return -errno.EINVAL
+    return -errno.ENOENT
+
+  def read(self, path, length, offset, fh):
+    fh.seek(offset)
+    return fh.read(length)
+
+  def write(self, path, buf, offset, fh):
+    fh.seek(offset)
+    fh.write(buf)
+    return len(buf)
+
+  def truncate(self, path, length):
+    fd = self.open(path, os.O_WRONLY)
+    os.ftruncate(fd.fileno(), length)
+
+  def release(self, path, flags, fh):
+    fh.close()
 
   def _GetRealFileStat(self, st, filename):
     match = self._FILE_ID_REGEX.match(filename)

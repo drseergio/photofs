@@ -61,8 +61,17 @@ class PhotoFS(Fuse):
   def open(self, path, flags):
     return self.view.open(path, flags)
  
-  def read(self, path, length, offset):
-    return self.view.read(path, length, offset)
+  def read(self, path, length, offset, fh):
+    return self.view.read(path, length, offset, fh)
+
+  def write(self, path, buf, offset, fh):
+    return self.view.write(path, buf, offset, fh)
+
+  def release(self, path, flags, fh):
+    return self.view.release(path, flags, fh)
+
+  def truncate(self, path, length):
+    return self.view.truncate(path, length)
 
   def _wait_lock(self):
     self.db.WaitLock()

@@ -9,6 +9,7 @@ import logging
 import os
 import sys
 import threading
+import time
 
 try:
   from gi.repository import GExiv2
@@ -25,6 +26,7 @@ from photofs.filters import filter_lens_spec
 
 
 class PhotoWalker(object):
+  _SYNC_TIMEOUT = 60 * 30  # every 30 minutes
   _METADATA_NAME_MAP = {
       'Exif.Photo.DateTimeOriginal': 'datetime',
       'Exif.Photo.FNumber': 'f',
@@ -76,6 +78,8 @@ class PhotoWalker(object):
         self.db.DeletePhoto(path)
     self.Walk(existing_photo_dict)
     self.db.BuildCache()
+    time.sleep(self._SYNC_TIMEOUT)
+    self.Sync()
 
   def ReadMetadata(self, path):
     meta = {}
