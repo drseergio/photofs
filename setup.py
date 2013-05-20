@@ -6,7 +6,7 @@ README = os.path.join(os.path.dirname(__file__), 'README.md')
 
 setup(
     name='photofs',
-    version = '1.0.7',
+    version = '1.0.8',
     description='virtual FUSE file-system for browsing photos',
     long_description=open(README).read() + 'nn',
     author='Sergey Pisarenko',

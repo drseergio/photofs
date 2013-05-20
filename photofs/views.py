@@ -11,6 +11,7 @@ import errno
 import inspect
 import os
 import re
+import shutil
 import stat
 import sys
 from time import time
@@ -20,23 +21,51 @@ _VIEW_REGEX = re.compile(r'^_PhotoFs\w+View$')
 
 class _AbstractView(object):
   _FILE_ID_REGEX = re.compile(r'^\d+\s\((0x\w+)\).jpg$')
+  _QEYTAKS_TMP_REGEX = re.compile(r'^\d+\s\((0x\w+)\).jpg(\d+)$')
 
   def __init__(self, photo_db):
     self.photo_db = photo_db
+    self.tmp_files = {}
 
-  def open(self, path, flags):
+  '''Pretend that we can write to the folder.
+
+  Some libaries like to write into temporary files and then replace the original
+  file. This method will trick them into thinking that it's all working while we
+  actually mess with files in /tmp.
+  '''
+  def getattr(self, path):
     path_split = path.split('/')
-    match = self._FILE_ID_REGEX.match(path_split[-1])
+    match = self._QEYTAKS_TMP_REGEX.match(path_split[-1])
     if match:
       photo_id = int(match.group(1), 16)
       real_path = self.photo_db.GetRealPhotoPath(photo_id)
       if real_path:
-        if (flags & 3) == os.O_RDONLY:
-          return open(real_path, 'rb')
-        elif (flags & 3) == os.O_WRONLY:
-          return open(real_path, 'wb')
-        else:
-          return -errno.EINVAL
+        st = _FsStat()
+        st.st_nlink = 1
+        st.st_mode = 33188
+        self.tmp_files[path] = os.path.join(
+            '/tmp', match.group(1) + match.group(2))
+        return st
+    return None
+
+  def open(self, path, flags):
+    real_path = self._GetRealPath(path)
+    if real_path:
+      print 'FLAGS! ' +  str(flags)
+      if (flags & 3) == os.O_RDONLY:
+        return open(real_path, 'rb')
+      elif (flags & 3) == os.O_WRONLY or (flags & 3) == os.O_RDWR:
+        return open(real_path, 'wb')
+      elif flags & os.O_APPEND:
+        return open(real_path, 'ab')
+      else:
+        return -errno.EINVAL
+    else:
+      path_split = path.split('/')
+      match = self._QEYTAKS_TMP_REGEX.match(path_split[-1])
+      if match:
+        real_path = self.tmp_files[path]
+        return open(real_path, 'wb')
     return -errno.ENOENT
 
   def read(self, path, length, offset, fh):
@@ -54,6 +83,24 @@ class _AbstractView(object):
 
   def release(self, path, flags, fh):
     fh.close()
+
+  def unlink(self, path):
+    return 0
+
+  def rename(self, oldPath, newPath):
+    tmp_path = self.tmp_files[oldPath]
+    del self.tmp_files[oldPath]
+    real_path = self._GetRealPath(newPath)
+    return shutil.move(tmp_path, real_path)
+
+  def _GetRealPath(self, path):
+    path_split = path.split('/')
+    match = self._FILE_ID_REGEX.match(path_split[-1])
+    if match:
+      photo_id = int(match.group(1), 16)
+      real_path = self.photo_db.GetRealPhotoPath(photo_id)
+      return real_path
+    return None
 
   def _GetRealFileStat(self, st, filename):
     match = self._FILE_ID_REGEX.match(filename)
@@ -84,6 +131,9 @@ class _PhotoFsDateView(_AbstractView):
   _YEAR_ALL_FOLDER = 'all'
 
   def getattr(self, path):
+    tmp = super(_PhotoFsDateView, self).getattr(path)
+    if tmp:
+      return tmp
     st = _FsStat()
 
     path_split = path.split('/')
@@ -158,6 +208,9 @@ class _PhotoFsSetsView(_AbstractView):
   _SELECTS_TAG = 'select'
 
   def getattr(self, path):
+    tmp = super(_PhotoFsSetsView, self).getattr(path)
+    if tmp:
+      return tmp
     st = _FsStat()
 
     path_split = path.split('/')
@@ -204,6 +257,9 @@ class _PhotoFsTagsView(_AbstractView):
   _NAME = 'tags'
 
   def getattr(self, path):
+    tmp = super(_PhotoFsTagsView, self).getattr(path)
+    if tmp:
+      return tmp
     st = _FsStat()
 
     if path == '/':
@@ -247,6 +303,9 @@ class _PhotoFsConfView(_AbstractView):
     'f', 'iso', 'make', 'camera', 'focal_length', 'lens_model', 'lens_spec'])
 
   def getattr(self, path):
+    tmp = super(_PhotoFsConfView, self).getattr(path)
+    if tmp:
+      return tmp
     st = _FsStat()
 
     if path == '/':

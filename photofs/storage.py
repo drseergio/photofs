@@ -68,6 +68,21 @@ class PhotoDb(object):
     conn.close()
     self._EmptyCache()
 
+  def UpdatePhoto(self, path, meta):
+    conn = sqlite3.connect(self.db_path)
+    cursor = conn.cursor()
+    values = [meta[c] for c in self._COLUMNS]
+    values.append(path)
+    cursor.execute('''UPDATE `files` SET %s
+        WHERE path = ?''' % ', '.join(['%s = ?' % c for c in self._COLUMNS]),
+        values)
+    cursor.execute('DELETE FROM files_tags WHERE path = ?', (path,))
+    if meta['tags']:
+      self._HandleTags(cursor, meta['tags'], path, meta['datetime'])
+    conn.commit()
+    conn.close()
+    self._EmptyCache()
+
   def GetYears(self):
     cached = self._GetCache('years')
     if cached:
@@ -224,6 +239,14 @@ class PhotoDb(object):
     conn.close()
     self._EmptyCache()
 
+  def HasPhoto(self, photo_path):
+    conn = sqlite3.connect(self.db_path)
+    cursor = conn.cursor()
+    cursor.execute('SELECT id FROM files WHERE path = ?', (photo_path,))
+    result = cursor.fetchone()
+    conn.close()
+    return result != None
+
   def GetConfValues(self, conf):
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
@@ -320,7 +343,8 @@ class PhotoDb(object):
     t.start()
 
   def _HandleTags(self, cursor, tags, path, photo_datetime):
-    rowid = cursor.lastrowid
+    cursor.execute('SELECT id FROM files WHERE path = ?', (path,))
+    rowid = cursor.fetchone()[0]
     for tag in tags:
       tag_lower = tag.lower()
       if tag_lower not in self.unique_tags:

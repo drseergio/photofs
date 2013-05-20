@@ -59,5 +59,7 @@ class PhotoWatcher(ProcessEvent):
     except Exception:
       return
 
-    self.db.DeletePhoto(full_path)
-    self.db.StorePhoto(full_path, meta)
+    if self.db.HasPhoto(full_path):
+      self.db.UpdatePhoto(full_path, meta)
+    else:
+      self.db.StorePhoto(full_path, meta)

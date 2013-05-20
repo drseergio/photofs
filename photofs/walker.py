@@ -51,18 +51,20 @@ class PhotoWalker(object):
     for dirname, _dirnames, filenames in os.walk(self.path, followlinks=True):
       for filename in filenames:
         full_path = os.path.join(dirname, filename)
-        if full_path in existing_photos:
-          if self._GetLastModified(full_path) == existing_photo_dict[full_path]:
-            continue
-          else:
-            self.db.DeletePhoto(full_path)
         try:
           meta = self.ReadMetadata(full_path)
         except Exception, e:
           logging.error('Failed adding %s', full_path)
           logging.exception(e)
           continue
-        self.db.StorePhoto(full_path, meta)
+
+        if full_path in existing_photos:
+          if self._GetLastModified(full_path) == existing_photo_dict[full_path]:
+            continue
+          else:
+            self.db.UpdatePhoto(full_path, meta)
+        else:
+          self.db.StorePhoto(full_path, meta)
     self.db.BuildCache()
 
   def Sync(self):

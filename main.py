@@ -70,6 +70,12 @@ class PhotoFS(Fuse):
   def release(self, path, flags, fh):
     return self.view.release(path, flags, fh)
 
+  def unlink(self, path):
+    return self.view.unlink(path)
+
+  def rename(self, oldPath, newPath):
+    return self.view.rename(oldPath, newPath)
+
   def truncate(self, path, length):
     return self.view.truncate(path, length)
 
