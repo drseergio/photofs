@@ -6,29 +6,31 @@ photofs is a virtual file system for viewing photos. photofs lists photos in
 
   * date -- structure follows date information, YYYY/MM/DD/..
 
-  * sets -- groups photos using labels (extracted from XMP metadata), intended
+  * albums -- groups photos using labels (extracted from XMP metadata), intended
           for events, trips, etc photo groups, like "1992 Summer trip to Alaska"
 
   * tags -- drill down in photos by selecting multiple tags; tags are extracted
           from IPTC keyword section; e.g.: vacation/summer/hawaii/...
 
-  * conf -- drill down by photo settings, such as F-stop, shutter speed, ISO; e.g.:
-          camera/Canon/f/2.8/iso/100/...
+  * camera -- drill down by photo settings, such as F-stop, shutter speed, ISO;
+          e.g.: camera/Canon/f/2.8/iso/100/...
 
-A little bit more about the "sets" mode
+When you mount photofs all 4 views will be available under the root path.
+
+A little bit more about the "albums" mode
 =======
 
-I have written "sets" mode mostly for my own photo work-flow. I typically view
+I have written "albums" mode mostly for my own photo work-flow. I typically view
 photos in albums, e.g. "2011-02-01 Trip to Romania" and I am interested in
 seeing all non-trashed (unfocused, flash did not fire) photos as well as
 "selects" (or best pictures) only.
 
-The root level in "sets" mode lists all available sets. As mentioned above,
-set names are extracted from XMP tag "label". Under each set, all photos for
-that set are listed.
+The root level in "albums" mode lists all available albums. As mentioned above,
+album names are extracted from XMP tag "label". Under each album, all photos for
+that album are listed.
 
-In addition, in each set folder you will see a "selects" sub-folder. That is
-intended for showing "selects" (or best) photos from that set. To determine if
+In addition, in each album folder you will see a "selects" sub-folder. That is
+intended for showing "selects" (or best) photos from that album. To determine if
 a photo is a "select" it must have a "select" tag added to it.
 
 How it works
@@ -40,11 +42,8 @@ virtual views when new photos are added or existing photos are changed or
 modified.
 
 photofs keeps its indexes in ".photofs" folder in user's home path. A database
-is created for each unique source (root) path. If you run multiple instances of
-photofs per given root path (e.g. for different view modes) only one of the
-instances will have write access to the database and will handle updates.
-Remaining instances will be read-only. If the instance which has write access is
-terminated one of the other instances will take over write-access.
+is created for each unique source (root) path. It's possible to run only single
+instance of photofs per given root path.
 
 By design, photofs should be kept running and inotify feature of
 the Linux kernel will ensure that all updates to the underlying files are
@@ -70,7 +69,7 @@ Example usage:
 =======
 
 ```
-$ python photofs.py -o root=/home/drseergio/Photos/ -o mode=date /home/drseergio/photofs
+$ python photofs.py -o root=/home/drseergio/Photos/ /home/drseergio/photofs
 ```
 
 Dependencies

@@ -51,12 +51,6 @@ class PhotoDb(object):
     self._CreateTables()
     return True
 
-  def WaitLock(self):
-    lock_path = '%s%s' % (self.db_path, '.lock')
-    self.lock_fd = open(lock_path, 'w')
-    fcntl.lockf(self.lock_fd, fcntl.LOCK_EX)
-    self.lock_fd.write('acquired')
-
   def StorePhoto(self, path, meta):
     conn = sqlite3.connect(self.db_path)
     cursor = conn.cursor()
