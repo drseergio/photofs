@@ -45,7 +45,7 @@ class PhotoFS(Fuse):
     return Fuse.main(self, *a, **kw)
 
   def fsdestroy(self):
-    self.watcher.Stop()
+    sys.exit(0)
 
   def RouteView(func):
     def inner(*args, **kwargs):
