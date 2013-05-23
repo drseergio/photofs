@@ -49,7 +49,13 @@ By design, photofs should be kept running and inotify feature of
 the Linux kernel will ensure that all updates to the underlying files are
 automatically reflected.
 
-photofs allows the images to be edited through the virtual view.
+photofs allows the images to be edited through the virtual view. In addition,
+there's a hack that allows exiv2 to write tags to file. exiv2 library wants to
+write to a temporary file and then rename it over original. photofs creates a
+memory buffer and fools exiv2 into believing that temp file has been created.
+
+IMPORTANT: I don't recommend using photofs in write mode over remote
+file-systems (e.g.mounted under NFS). Images can get corrupted.
 
 
 photofs is licensed under GPLv3

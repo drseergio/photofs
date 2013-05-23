@@ -105,6 +105,10 @@ class PhotoFS(Fuse):
     return view.unlink(path_split[2:])
 
   @RouteView
+  def rename(self, oldPath, newPath, view=None, path_split=None):
+    return view.rename(oldPath.split('/')[2:], newPath.split('/')[2:])
+
+  @RouteView
   def truncate(self, path, length, view=None, path_split=None):
     return view.truncate(path_split[2:], length)
 

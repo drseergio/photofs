@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import stat
+import StringIO
 import sys
 from time import time
 
@@ -21,12 +22,31 @@ _VIEW_REGEX = re.compile(r'^_PhotoFs\w+View$')
 
 class _AbstractView(object):
   _FILE_ID_REGEX = re.compile(r'^\d+\s\((0x\w+)\).jpg$')
-  _QEYTAKS_TMP_REGEX = re.compile(r'^\d+\s\((0x\w+)\).jpg(\d+)$')
+  _EXIV2_TMP_REGEX = re.compile(r'^\d+\s\((0x\w+)\).jpg(\d+)$')
 
   def __init__(self, photo_db):
     self.photo_db = photo_db
+    self.tmp_files = {}
+
+  '''Pretend that we can write to the folder.
+
+  exiv2 library wants to write into a temp file and then move the new file
+  over the original. This is to make qeytaks works transparently.
+  '''
+  def getattr(self, path_split):
+    if self._IsExiv2Tmp(path_split):
+      tmp_key = '/'.join(path_split)
+      if not tmp_key in self.tmp_files.keys():
+        self.tmp_files[tmp_key] = StringIO.StringIO()
+      st = FsStat()
+      st.st_nlink = 1
+      st.st_mode = 33188
+      return st
+    return None
 
   def open(self, path_split, flags):
+    if self._IsExiv2Tmp(path_split):
+      return 0
     real_path = self._GetRealPath(path_split)
     if real_path:
       return 0
@@ -38,14 +58,38 @@ class _AbstractView(object):
     return fh.read(length)
 
   def write(self, path_split, buf, offset):
-    fh = open(self._GetRealPath(path_split), 'a')
+    if self._IsExiv2Tmp(path_split):
+      tmp_key = '/'.join(path_split)
+      fh = self.tmp_files[tmp_key]
+    else:
+      fh = open(self._GetRealPath(path_split), 'a')
     fh.seek(offset)
     fh.write(buf)
     return len(buf)
 
   def truncate(self, path_split, length):
-    fh = open(self._GetRealPath(path_split), 'w+')
+    if self._IsExiv2Tmp(path_split):
+      tmp_key = '/'.join(path_split)
+      fh = self.tmp_files[tmp_key]
+    else:
+      fh = open(self._GetRealPath(path_split), 'w+')
     return fh.truncate(length)
+
+  def rename(self, oldPath_split, newPath_split):
+    if not self._IsExiv2Tmp(oldPath_split):
+      return 0
+
+    tmp_key = '/'.join(oldPath_split)
+    tmp_fh = self.tmp_files[tmp_key]
+
+    real_path = self._GetRealPath(newPath_split)
+    real_fh = open(real_path, 'w')
+    real_fh.write(tmp_fh.getvalue())
+
+    real_fh.close()
+    tmp_fh.close()
+    del self.tmp_files[tmp_key]
+    return 0
 
   def release(self, path_split, flags):
     return 0
@@ -60,6 +104,15 @@ class _AbstractView(object):
       real_path = self.photo_db.GetRealPhotoPath(photo_id)
       return real_path
     return None
+
+  def _IsExiv2Tmp(self, path_split):
+    match = self._EXIV2_TMP_REGEX.match(path_split[-1])
+    if match:
+      photo_id = int(match.group(1), 16)
+      real_path = self.photo_db.GetRealPhotoPath(photo_id)
+      if real_path:
+        return True
+    return False
 
   def _GetRealFileStat(self, st, filename):
     match = self._FILE_ID_REGEX.match(filename)
@@ -90,6 +143,9 @@ class _PhotoFsDateView(_AbstractView):
   _YEAR_ALL_FOLDER = 'all'
 
   def getattr(self, path_split):
+    tmp = super(_PhotoFsDateView, self).getattr(path_split)
+    if tmp:
+      return tmp
     st = FsStat()
 
     if len(path_split) == 1:
@@ -152,12 +208,15 @@ class _PhotoFsDateView(_AbstractView):
     return [str('%s-%s' % (m, calendar.month_abbr[int(m)])) for m in months]
 
 
-class _PhotoFsSetsView(_AbstractView):
+class _PhotoFsAlbumView(_AbstractView):
   _NAME = 'albums'
   _SELECTS_DIR = 'selects'
   _SELECTS_TAG = 'select'
 
   def getattr(self, path_split):
+    tmp = super(_PhotoFsAlbumView, self).getattr(path_split)
+    if tmp:
+      return tmp
     st = FsStat()
 
     if len(path_split) == 1:
@@ -198,6 +257,9 @@ class _PhotoFsTagsView(_AbstractView):
   _NAME = 'tags'
 
   def getattr(self, path_split):
+    tmp = super(_PhotoFsTagsView, self).getattr(path_split)
+    if tmp:
+      return tmp
     st = FsStat()
 
     tags = set(self.photo_db.GetTags())
@@ -229,12 +291,15 @@ class _PhotoFsTagsView(_AbstractView):
     return entries
 
 
-class _PhotoFsConfView(_AbstractView):
+class _PhotoFsCameraView(_AbstractView):
   _NAME = 'camera'
   _PARAMS = set([
     'f', 'iso', 'make', 'camera', 'focal_length', 'lens_model', 'lens_spec'])
 
   def getattr(self, path_split):
+    tmp = super(_PhotoFsCameraView, self).getattr(path_split)
+    if tmp:
+      return tmp
     st = FsStat()
 
     used_conf = path_split[::2]
