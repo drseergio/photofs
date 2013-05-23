@@ -89,24 +89,20 @@ class PhotoFS(Fuse):
     return view.open(path_split[2:], flags)
  
   @RouteView
-  def read(self, path, length, offset, fh, view=None, path_split=None):
-    return view.read(path_split[2:], length, offset, fh)
+  def read(self, path, length, offset, view=None, path_split=None):
+    return view.read(path_split[2:], length, offset)
 
   @RouteView
-  def write(self, path, buf, offset, fh, view=None, path_split=None):
-    return view.write(path_split[2:], buf, offset, fh)
+  def write(self, path, buf, offset, view=None, path_split=None):
+    return view.write(path_split[2:], buf, offset)
 
   @RouteView
-  def release(self, path, flags, fh, view=None, path_split=None):
-    return view.release(path_split[2:], flags, fh)
+  def release(self, path, flags, view=None, path_split=None):
+    return view.release(path_split[2:], flags)
 
   @RouteView
   def unlink(self, path, view=None, path_split=None):
     return view.unlink(path_split[2:])
-
-  @RouteView
-  def rename(self, oldPath, newPath, view=None, path_split=None):
-    return view.rename(oldPath.split('/')[2:], newPath.split('/')[2:])
 
   @RouteView
   def truncate(self, path, length, view=None, path_split=None):

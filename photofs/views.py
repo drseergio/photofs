@@ -25,72 +25,33 @@ class _AbstractView(object):
 
   def __init__(self, photo_db):
     self.photo_db = photo_db
-    self.tmp_files = {}
-
-  '''Pretend that we can write to the folder.
-
-  Some libaries like to write into temporary files and then replace the original
-  file. This method will trick them into thinking that it's all working while we
-  actually mess with files in /tmp.
-  '''
-  def getattr(self, path_split):
-    match = self._QEYTAKS_TMP_REGEX.match(path_split[-1])
-    if match:
-      photo_id = int(match.group(1), 16)
-      real_path = self.photo_db.GetRealPhotoPath(photo_id)
-      if real_path:
-        st = FsStat()
-        st.st_nlink = 1
-        st.st_mode = 33188
-        tmp_key = '/'.join(path_split)
-        self.tmp_files[tmp_key] = os.path.join(
-            '/tmp', match.group(1) + match.group(2))
-        return st
-    return None
 
   def open(self, path_split, flags):
     real_path = self._GetRealPath(path_split)
     if real_path:
-      if (flags & 3) == os.O_RDONLY:
-        return open(real_path, 'rb')
-      elif (flags & 3) == os.O_WRONLY or (flags & 3) == os.O_RDWR:
-        return open(real_path, 'wb')
-      elif flags & os.O_APPEND:
-        return open(real_path, 'ab')
-      else:
-        return -errno.EINVAL
-    else:
-      match = self._QEYTAKS_TMP_REGEX.match(path_split[-1])
-      if match:
-        real_path = self.tmp_files['/'.join(path_split)]
-        return open(real_path, 'ab')
+      return 0
     return -errno.ENOENT
 
-  def read(self, path_split, length, offset, fh):
+  def read(self, path_split, length, offset):
+    fh = open(self._GetRealPath(path_split), 'r')
     fh.seek(offset)
     return fh.read(length)
 
-  def write(self, path_split, buf, offset, fh):
+  def write(self, path_split, buf, offset):
+    fh = open(self._GetRealPath(path_split), 'a')
     fh.seek(offset)
     fh.write(buf)
     return len(buf)
 
   def truncate(self, path_split, length):
-    fd = self.open(path_split, os.O_WRONLY)
-    os.ftruncate(fd.fileno(), length)
+    fh = open(self._GetRealPath(path_split), 'w+')
+    return fh.truncate(length)
 
-  def release(self, path_split, flags, fh):
-    fh.close()
+  def release(self, path_split, flags):
+    return 0
 
   def unlink(self, path_split):
     return 0
-
-  def rename(self, oldPath_split, newPath_split):
-    tmp_key = '/'.join(oldPath_split)
-    tmp_path = self.tmp_files[tmp_key]
-    del self.tmp_files[tmp_key]
-    real_path = self._GetRealPath(newPath_split)
-    return shutil.move(tmp_path, real_path)
 
   def _GetRealPath(self, path_split):
     match = self._FILE_ID_REGEX.match(path_split[-1])
@@ -129,9 +90,6 @@ class _PhotoFsDateView(_AbstractView):
   _YEAR_ALL_FOLDER = 'all'
 
   def getattr(self, path_split):
-    tmp = super(_PhotoFsDateView, self).getattr(path_split)
-    if tmp:
-      return tmp
     st = FsStat()
 
     if len(path_split) == 1:
@@ -200,9 +158,6 @@ class _PhotoFsSetsView(_AbstractView):
   _SELECTS_TAG = 'select'
 
   def getattr(self, path_split):
-    tmp = super(_PhotoFsSetsView, self).getattr(path_split)
-    if tmp:
-      return tmp
     st = FsStat()
 
     if len(path_split) == 1:
@@ -243,9 +198,6 @@ class _PhotoFsTagsView(_AbstractView):
   _NAME = 'tags'
 
   def getattr(self, path_split):
-    tmp = super(_PhotoFsTagsView, self).getattr(path_split)
-    if tmp:
-      return tmp
     st = FsStat()
 
     tags = set(self.photo_db.GetTags())
@@ -283,9 +235,6 @@ class _PhotoFsConfView(_AbstractView):
     'f', 'iso', 'make', 'camera', 'focal_length', 'lens_model', 'lens_spec'])
 
   def getattr(self, path_split):
-    tmp = super(_PhotoFsConfView, self).getattr(path_split)
-    if tmp:
-      return tmp
     st = FsStat()
 
     used_conf = path_split[::2]

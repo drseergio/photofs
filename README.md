@@ -49,10 +49,7 @@ By design, photofs should be kept running and inotify feature of
 the Linux kernel will ensure that all updates to the underlying files are
 automatically reflected.
 
-photofs allows the images to be edited through the virtual view. Furthermore,
-there is hack to fool exiv2 library into believing that it can create temp
-files in the same folder as the image. This is implemented so that qeytaks
-program can operate directly in the photofs virtual view.
+photofs allows the images to be edited through the virtual view.
 
 
 photofs is licensed under GPLv3
