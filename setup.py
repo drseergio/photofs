@@ -13,9 +13,9 @@ setup(
     author_email='drseergio@gmail.com',
     url='http://grow-slowly.com',
     license='GPL',
-    py_modules=['main'],
+    py_modules=['photofs_main'],
     packages=['photofs'],
     entry_points={
         'console_scripts': [
-            'photofs=main:main']},
+            'photofs=photofs_main:main']},
     install_requires=['fuse-python', 'pyinotify'])
