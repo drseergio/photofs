@@ -47,6 +47,7 @@ class PhotoWalker(object):
     self.db = db
 
   def Walk(self, existing_photo_dict={}):
+    self.db.BuildCache()
     existing_photos = existing_photo_dict.keys()
     for dirname, _dirnames, filenames in os.walk(self.path, followlinks=True):
       for filename in filenames:
