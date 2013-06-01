@@ -30,19 +30,21 @@ class PhotoFS(Fuse):
 
       if self.db.TryLock():
         logging.info('Acquired database lock, will write/update it')
-        self.walker = PhotoWalker(self.root, self.db)
-        self.watcher = PhotoWatcher(self.db, self.walker, self.root)
-        if self.db.IsEmptyDb():
-          self.walker.Walk()
-        else:
-          self.walker.Sync()
-        self.watcher.Watch()
       else:
         logging.error(('Failed to acquire database lock, '
                        'another instance is already running'))
         sys.exit(0)
 
     return Fuse.main(self, *a, **kw)
+
+  def fsinit(self):
+    self.walker = PhotoWalker(self.root, self.db)
+    self.watcher = PhotoWatcher(self.db, self.walker, self.root)
+    if self.db.IsEmptyDb():
+      self.walker.Walk()
+    else:
+      self.walker.Sync()
+    self.watcher.Watch()
 
   def fsdestroy(self):
     sys.exit(0)
