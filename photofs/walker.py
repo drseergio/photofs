@@ -26,6 +26,7 @@ from photofs.filters import filter_lens_spec
 
 
 class PhotoWalker(object):
+  _SYNC_TIMEOUT = 60 * 30  # do sync in 30 minutes after start 
   _METADATA_NAME_MAP = {
       'Exif.Photo.DateTimeOriginal': 'datetime',
       'Exif.Photo.FNumber': 'f',
@@ -68,6 +69,11 @@ class PhotoWalker(object):
 
   def Sync(self):
     self.db.BuildCache()
+    thread = threading.Timer(self._SYNC_TIMEOUT, target=self._Sync)
+    thread.daemon = True
+    thread.start() 
+
+  def _Sync(self):
     existing_photo_dict = self.db.GetAllPhotosLastModified()
     existing_photos = existing_photo_dict.keys()
     for path in existing_photos:
